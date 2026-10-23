@@ -3,24 +3,15 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Agenda from '@/models/agenda';
 
-interface RouteParams {
-  params: {
-    unitcode: string;
-    id: string;
-  };
-}
-
-// GET: Ambil detail 1 agenda untuk form edit
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string; id: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await params;
-    const { unitcode, id } = resolvedParams;
-
+    const { unitcode, id } = await params;
     const agenda = await Agenda.findOne({ _id: id, unitCode: unitcode });
-    if (!agenda) {
-      return NextResponse.json({ status: 0, message: "Agenda tidak ditemukan" }, { status: 404 });
-    }
+    if (!agenda) return NextResponse.json({ status: 0, message: "Agenda tidak ditemukan" }, { status: 404 });
 
     return NextResponse.json({ status: 1, data: { agenda } }, { status: 200 });
   } catch (error: any) {
@@ -28,13 +19,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-// PUT: Update agenda
-export async function PUT(request: NextRequest, { params }: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string; id: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await params;
-    const { unitcode, id } = resolvedParams;
-
+    const { unitcode, id } = await params;
     const body = await request.json();
     const { title, startDate, endDate, kategori, description } = body;
 
@@ -44,27 +35,22 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       { new: true, runValidators: true }
     );
 
-    if (!updatedAgenda) {
-      return NextResponse.json({ status: 0, message: "Agenda tidak ditemukan" }, { status: 404 });
-    }
-
+    if (!updatedAgenda) return NextResponse.json({ status: 0, message: "Agenda tidak ditemukan" }, { status: 404 });
     return NextResponse.json({ status: 1, message: "Agenda berhasil diperbarui", data: updatedAgenda }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ status: 0, message: error.message }, { status: 500 });
   }
 }
 
-// DELETE: Hapus agenda
-export async function DELETE(request: NextRequest, { params }: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string; id: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await params;
-    const { unitcode, id } = resolvedParams;
-
+    const { unitcode, id } = await params;
     const deletedAgenda = await Agenda.findOneAndDelete({ _id: id, unitCode: unitcode });
-    if (!deletedAgenda) {
-      return NextResponse.json({ status: 0, message: "Agenda tidak ditemukan" }, { status: 404 });
-    }
+    if (!deletedAgenda) return NextResponse.json({ status: 0, message: "Agenda tidak ditemukan" }, { status: 404 });
 
     return NextResponse.json({ status: 1, message: "Agenda berhasil dihapus" }, { status: 200 });
   } catch (error: any) {

@@ -3,13 +3,6 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Ppdb from '@/models/ppdb';
 
-interface RouteParams {
-  params: Promise<{
-    unitcode: string;
-  }>;
-}
-
-// Handler untuk Preflight CORS Request (OPTIONS)
 export async function OPTIONS() {
   return NextResponse.json({}, {
     status: 200,
@@ -21,15 +14,14 @@ export async function OPTIONS() {
   });
 }
 
-// GET: Mengambil seluruh daftar PPDB berdasarkan unit
-export async function GET(request: NextRequest, context: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await context.params;
-    const unit = resolvedParams.unitcode; 
-
-    const ppdbList = await Ppdb.find({ unitCode: unit }).sort({ createdAt: -1 });
-    
+    const { unitcode } = await params;
+    const ppdbList = await Ppdb.find({ unitCode: unitcode }).sort({ createdAt: -1 });
     return NextResponse.json({ status: 1, data: ppdbList }, { 
       status: 200,
       headers: {
@@ -46,25 +38,23 @@ export async function GET(request: NextRequest, context: RouteParams) {
   }
 }
 
-// POST: Menambahkan data PPDB baru
-export async function POST(request: NextRequest, context: RouteParams) {
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await context.params;
-    const unit = resolvedParams.unitcode;
-
+    const { unitcode } = await params;
     const body = await request.json();
     const { jalurPendaftaran, statusBuka } = body;
 
     const newPpdb = await Ppdb.create({
-      unitCode: unit,
+      unitCode: unitcode,
       jalurPendaftaran,
       statusBuka: statusBuka !== undefined ? statusBuka : true,
     });
 
-    return NextResponse.json(
-      { status: 1, message: "Data PPDB berhasil ditambahkan", data: newPpdb }, 
-      { 
+    return NextResponse.json({ status: 1, message: "Data PPDB berhasil ditambahkan", data: newPpdb }, { 
         status: 201,
         headers: {
           'Access-Control-Allow-Origin': '*',

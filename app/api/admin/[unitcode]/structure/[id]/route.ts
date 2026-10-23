@@ -3,20 +3,13 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Struktur from '@/models/structure';
 
-interface RouteParams {
-  params: Promise<{
-    unitcode: string;
-    id: string;
-  }>;
-}
-
-// GET: Mengambil satu data spesifik untuk dimunculkan di form Edit
-export async function GET(request: NextRequest, context: RouteParams) {
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string; id: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await context.params;
-    const { id } = resolvedParams;
-
+    const { id } = await params;
     const data = await Struktur.findById(id);
     if (!data) return NextResponse.json({ status: 0, message: "Data tidak ditemukan" }, { status: 404 });
     
@@ -26,12 +19,13 @@ export async function GET(request: NextRequest, context: RouteParams) {
   }
 }
 
-// PUT: Mengupdate data struktur
-export async function PUT(request: NextRequest, context: RouteParams) {
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string; id: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await context.params;
-    const { id } = resolvedParams;
+    const { id } = await params;
     const body = await request.json();
     
     const updatedData = await Struktur.findByIdAndUpdate(id, body, { new: true });
@@ -43,13 +37,13 @@ export async function PUT(request: NextRequest, context: RouteParams) {
   }
 }
 
-// DELETE: Menghapus data struktur
-export async function DELETE(request: NextRequest, context: RouteParams) {
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ unitcode: string; id: string }> }
+) {
   await dbConnect();
   try {
-    const resolvedParams = await context.params;
-    const { id } = resolvedParams;
-
+    const { id } = await params;
     const deletedData = await Struktur.findByIdAndDelete(id);
     if (!deletedData) return NextResponse.json({ status: 0, message: "Gagal menghapus data" }, { status: 404 });
     
