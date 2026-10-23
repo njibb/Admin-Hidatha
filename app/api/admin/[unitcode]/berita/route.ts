@@ -1,10 +1,7 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Berita from '@/models/berita';
-import { writeFile, mkdir } from 'fs/promises';
-import path from 'path';
 
 export async function GET(
   request: NextRequest,
@@ -35,23 +32,25 @@ export async function POST(
 
     let imagePath = null;
 
+    // Ubah file gambar ke Base64 agar aman di Vercel (Read-Only File System)
     if (imageFile && typeof imageFile === 'object' && imageFile.size > 0) {
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
-      const filename = `${Date.now()}-${imageFile.name.replaceAll(' ', '_')}`;
-      const uploadDir = path.join(process.cwd(), 'public/uploads');
-      
-      try { await mkdir(uploadDir, { recursive: true }); } catch (err) {}
-      await writeFile(path.join(uploadDir, filename), buffer);
-      imagePath = `/uploads/${filename}`;
+      const mimeType = imageFile.type || 'image/png';
+      imagePath = `data:${mimeType};base64,${buffer.toString('base64')}`;
     }
 
     const newBerita = await Berita.create({
-      title, content, image: imagePath, unitCode: unitcode, asalData: 'MANUAL'
+      title, 
+      content, 
+      image: imagePath, 
+      unitCode: unitcode, 
+      asalData: 'MANUAL'
     });
 
     return NextResponse.json({ status: 1, message: "Berita berhasil ditambahkan", data: newBerita }, { status: 201 });
   } catch (error: any) {
+    console.error("Error POST Berita:", error);
     return NextResponse.json({ status: 0, message: error.message }, { status: 500 });
   }
 }
