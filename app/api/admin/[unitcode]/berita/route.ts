@@ -7,15 +7,15 @@ import { writeFile, mkdir } from 'fs/promises';
 import path from 'path';
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     unitcode: string;
-  };
+  }>;
 }
 
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, context: RouteParams) {
   await dbConnect();
   try {
-    const resolvedParams = await params;
+    const resolvedParams = await context.params;
     const unit = resolvedParams.unitcode; 
 
     const beritaList = await Berita.find({ unitCode: unit }).sort({ createdAt: -1 });
@@ -25,11 +25,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 }
 
-export async function POST(request: NextRequest, { params }: RouteParams) {
+export async function POST(request: NextRequest, context: RouteParams) {
   await dbConnect();
   
   try {
-    const resolvedParams = await params;
+    const resolvedParams = await context.params;
     const unit = resolvedParams.unitcode;
 
     const formData = await request.formData();
@@ -46,7 +46,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       const filename = `${Date.now()}-${imageFile.name.replaceAll(' ', '_')}`;
       const uploadDir = path.join(process.cwd(), 'public/uploads');
       
-      // OTOMATIS BUAT FOLDER JIKA BELUM ADA (Mencegah error ENOENT)
       try {
         await mkdir(uploadDir, { recursive: true });
       } catch (err) {
