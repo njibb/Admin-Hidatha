@@ -21,7 +21,7 @@ export async function GET(request: NextRequest, context: RouteParams) {
     const obj = berita.toObject();
     const formattedBerita = {
       ...obj,
-      image: obj.image ? (obj.image.startsWith('http') ? obj.image : `http://localhost:3000${obj.image}`) : null
+      image: obj.image ? (obj.image.startsWith('http') || obj.image.startsWith('data:') ? obj.image : `https://admin-hidatha.vercel.app${obj.image}`) : null
     };
 
     return NextResponse.json({ status: 1, data: formattedBerita }, {

@@ -18,11 +18,12 @@ export async function GET(request: NextRequest, context: RouteParams) {
     }).sort({ createdAt: -1 });
 
     // Format URL Gambar agar mengarah ke Port 3000 Admin
+    // Format URL Gambar agar mengenali Base64 dan mengarah ke domain Vercel
     const formattedList = beritaList.map((item) => {
       const obj = item.toObject();
       return {
         ...obj,
-        image: obj.image ? (obj.image.startsWith('http') ? obj.image : `http://localhost:3000${obj.image}`) : null
+        image: obj.image ? (obj.image.startsWith('http') || obj.image.startsWith('data:') ? obj.image : `https://admin-hidatha.vercel.app${obj.image}`) : null
       };
     });
 
