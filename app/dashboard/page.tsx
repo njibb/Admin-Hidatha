@@ -1,4 +1,3 @@
-/* eslint-disable react-hooks/set-state-in-effect */
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -13,30 +12,32 @@ export default function MasterDashboard() {
   const router = useRouter();
 
   useEffect(() => {
-    // Menandai bahwa komponen sudah di-render di sisi klien
-    // Ini mencegah error hidrasi dan mereset kanvas WebGL
-    setIsMounted(true);
-
     const token = localStorage.getItem('bearer_token');
-    const role = localStorage.getItem('user_role'); // 'superadmin' atau 'admin'
-    const unit = localStorage.getItem('unit_code'); // 'all', 'tk', 'mi', 'mts', 'smk'
+    const role = localStorage.getItem('user_role');
+    const unit = localStorage.getItem('unit_code');
 
     // Tendang jika belum login
     if (!token) {
       router.push('/');
-      return; // Hentikan eksekusi kode di bawahnya
+      return; 
     }
 
-    // --- LOGIKA PENYESUAIAN 5 AKUN ---
+    // 1. Siapkan variabel penampung teks sapaan
+    let teksSapaan = 'Selamat Datang Admin!';
+
+    // 2. Tentukan isi teks berdasarkan akun
     if (role === 'superadmin' || unit === 'all') {
-      setGreeting('Selamat Datang Super Admin Yayasan!');
+      teksSapaan = 'Selamat Datang Super Admin Yayasan!';
     } else if (unit) {
-      // Format teks unit, khusus MTs huruf kapitalnya menyesuaikan (MTs)
       const unitFormatted = unit === 'mts' ? 'MTs' : unit.toUpperCase();
-      setGreeting(`Selamat Datang Admin ${unitFormatted}!`);
-    } else {
-      setGreeting('Selamat Datang Admin!');
+      // PERHATIKAN: Menggunakan tanda BACKTICK (`...`) bukan kutip dua!
+      teksSapaan = `Selamat Datang Admin ${unitFormatted}!`;
     }
+
+    // 3. Eksekusi state secara berbarengan di paling akhir
+    // eslint-disable-next-line
+    setGreeting(teksSapaan);
+    setIsMounted(true);
   }, [router]);
 
   return (
