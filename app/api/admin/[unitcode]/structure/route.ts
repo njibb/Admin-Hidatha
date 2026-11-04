@@ -3,6 +3,25 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Struktur from '@/models/structure';
 
+// Helper fungsi untuk menembak webhook/sync ke chatbot utama
+async function triggerChatbotSync(action: 'CREATE_UPDATE' | 'DELETE', collectionName: string, data: any) {
+  try {
+    const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_URL || 'https://hidayatuttholibin.blog';
+    const secretKey = process.env.NEXT_PUBLIC_ADMIN_SYNC_SECRET;
+
+    await fetch(`${chatbotUrl}/api/sync-single`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secretKey}`
+      },
+      body: JSON.stringify({ action, collectionName, data })
+    });
+  } catch (error) {
+    console.error('Gagal sync ke chatbot:', error);
+  }
+}
+
 export async function OPTIONS() {
   return NextResponse.json({}, {
     status: 200,
@@ -43,6 +62,13 @@ export async function POST(
 
     const newStruktur = await Struktur.create({
       nama, jabatan, kategori, unitCode: unitcode,
+    });
+
+    // TRIGGER SYNC KE CHATBOT (CREATE)
+    await triggerChatbotSync('CREATE_UPDATE', 'structure', {
+      _id: newStruktur._id,
+      title: `${newStruktur.jabatan} - ${newStruktur.nama}`,
+      content: `Unit: ${unitcode}, Nama: ${newStruktur.nama}, Jabatan: ${newStruktur.jabatan}, Kategori: ${newStruktur.kategori}`
     });
 
     return NextResponse.json({ status: 1, message: "Pengurus berhasil ditambahkan", data: newStruktur }, { 

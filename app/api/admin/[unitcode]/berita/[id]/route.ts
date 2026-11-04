@@ -3,6 +3,25 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Berita from '@/models/berita'; 
 
+// Helper fungsi untuk menembak webhook/sync ke chatbot utama
+async function triggerChatbotSync(action: 'CREATE_UPDATE' | 'DELETE', collectionName: string, data: any) {
+  try {
+    const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_URL || 'https://www.hidayatuttholibin.blog/';
+    const secretKey = process.env.NEXT_PUBLIC_ADMIN_SYNC_SECRET;
+
+    await fetch(`${chatbotUrl}/api/sync-single`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secretKey}`
+      },
+      body: JSON.stringify({ action, collectionName, data })
+    });
+  } catch (error) {
+    console.error('Gagal sync ke chatbot:', error);
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ unitcode: string; id: string }> }
@@ -36,7 +55,6 @@ export async function PUT(
 
     let imagePath = existingBerita.image; 
 
-    // Ubah file gambar baru ke Base64 jika diunggah
     if (imageFile && typeof imageFile === 'object' && imageFile.size > 0) {
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
@@ -48,6 +66,13 @@ export async function PUT(
     existingBerita.content = content;
     existingBerita.image = imagePath;
     await existingBerita.save();
+
+    // TRIGGER SYNC KE CHATBOT (UPDATE)
+    await triggerChatbotSync('CREATE_UPDATE', 'berita', {
+      _id: existingBerita._id,
+      title: existingBerita.title,
+      content: `Unit: ${unitcode}. Berita: ${existingBerita.title}. Isi: ${existingBerita.content}`
+    });
 
     return NextResponse.json({ status: 1, message: "Berita berhasil diperbarui", data: existingBerita }, { status: 200 });
   } catch (error: any) {
@@ -66,6 +91,12 @@ export async function DELETE(
     const deletedBerita = await Berita.findOneAndDelete({ _id: id, unitCode: unitcode });
     
     if (!deletedBerita) return NextResponse.json({ status: 0, message: "Data tidak ditemukan" }, { status: 404 });
+
+    // TRIGGER SYNC KE CHATBOT (DELETE)
+    await triggerChatbotSync('DELETE', 'berita', {
+      _id: deletedBerita._id
+    });
+
     return NextResponse.json({ status: 1, message: "Berita berhasil dihapus" }, { status: 200 });
   } catch (error: any) {
     return NextResponse.json({ status: 0, message: error.message }, { status: 500 });

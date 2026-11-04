@@ -3,6 +3,25 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Berita from '@/models/berita';
 
+// Helper fungsi untuk menembak webhook/sync ke chatbot utama
+async function triggerChatbotSync(action: 'CREATE_UPDATE' | 'DELETE', collectionName: string, data: any) {
+  try {
+    const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_URL || 'https://www.hidayatuttholibin.blog/';
+    const secretKey = process.env.NEXT_PUBLIC_ADMIN_SYNC_SECRET;
+
+    await fetch(`${chatbotUrl}/api/sync-single`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secretKey}`
+      },
+      body: JSON.stringify({ action, collectionName, data })
+    });
+  } catch (error) {
+    console.error('Gagal sync ke chatbot:', error);
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ unitcode: string }> }
@@ -32,7 +51,6 @@ export async function POST(
 
     let imagePath = null;
 
-    // Ubah file gambar ke Base64 agar aman di Vercel (Read-Only File System)
     if (imageFile && typeof imageFile === 'object' && imageFile.size > 0) {
       const bytes = await imageFile.arrayBuffer();
       const buffer = Buffer.from(bytes);
@@ -46,6 +64,13 @@ export async function POST(
       image: imagePath, 
       unitCode: unitcode, 
       asalData: 'MANUAL'
+    });
+
+    // TRIGGER SYNC KE CHATBOT (CREATE)
+    await triggerChatbotSync('CREATE_UPDATE', 'berita', {
+      _id: newBerita._id,
+      title: newBerita.title,
+      content: `Unit: ${unitcode}. Berita: ${newBerita.title}. Isi: ${newBerita.content}`
     });
 
     return NextResponse.json({ status: 1, message: "Berita berhasil ditambahkan", data: newBerita }, { status: 201 });

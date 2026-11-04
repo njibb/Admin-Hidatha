@@ -3,6 +3,25 @@ import { NextResponse, NextRequest } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Agenda from '@/models/agenda';
 
+// Helper fungsi untuk menembak webhook/sync ke chatbot utama
+async function triggerChatbotSync(action: 'CREATE_UPDATE' | 'DELETE', collectionName: string, data: any) {
+  try {
+    const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_URL || 'https://www.hidayatuttholibin.blog/';
+    const secretKey = process.env.NEXT_PUBLIC_ADMIN_SYNC_SECRET;
+
+    await fetch(`${chatbotUrl}/api/sync-single`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${secretKey}`
+      },
+      body: JSON.stringify({ action, collectionName, data })
+    });
+  } catch (error) {
+    console.error('Gagal sync ke chatbot:', error);
+  }
+}
+
 export async function OPTIONS() {
   return NextResponse.json({}, {
     status: 200,
@@ -50,6 +69,13 @@ export async function POST(
 
     const newAgenda = await Agenda.create({
       title, startDate, endDate: endDate || startDate, kategori: kategori || 'lainnya', description, unitCode: unitcode,
+    });
+
+    // TRIGGER SYNC KE CHATBOT (CREATE)
+    await triggerChatbotSync('CREATE_UPDATE', 'agendas', {
+      _id: newAgenda._id,
+      title: `Agenda ${unitcode.toUpperCase()}: ${newAgenda.title}`,
+      content: `Unit: ${unitcode}, Agenda: ${newAgenda.title}, Kategori: ${newAgenda.kategori}, Tanggal Mulai: ${newAgenda.startDate}, Tanggal Selesai: ${newAgenda.endDate}, Deskripsi: ${newAgenda.description || '-'}`
     });
 
     return NextResponse.json({ status: 1, message: "Agenda berhasil ditambahkan", data: newAgenda }, { 
