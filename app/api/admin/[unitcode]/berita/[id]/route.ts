@@ -7,7 +7,7 @@ import Berita from '@/models/berita';
 async function triggerChatbotSync(action: 'CREATE_UPDATE' | 'DELETE', collectionName: string, data: any) {
   try {
     const chatbotUrl = process.env.NEXT_PUBLIC_CHATBOT_URL || 'https://www.hidayatuttholibin.blog/';
-    const secretKey = process.env.NEXT_PUBLIC_ADMIN_SYNC_SECRET;
+    const secretKey = process.env.ADMIN_SYNC_SECRET;
 
     await fetch(`${chatbotUrl}/api/sync-single`, {
       method: 'POST',
